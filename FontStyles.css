@@ -1,0 +1,56 @@
+/* Main styles */
+@import url(http://fonts.googleapis.com/css?family=Open+Sans:800);
+
+.text1 {
+  font: 7em/1 Open Sans, Impact;
+  text-transform: uppercase;
+  fill: #222;
+}
+
+/* Other styles */
+body {
+  background: #FFF;
+  margin: 0;
+}
+
+svg {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+
+.text2 {
+  font: 4em/1 Open Sans, Impact;
+  text-transform: uppercase;
+  fill: #222;
+}
+
+/* Other styles */
+body {
+  background: #FFF;
+  margin: 0;
+}
+
+svg {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+
+.text3 {
+  font: 2em/1 Open Sans, Impact;
+  text-transform: uppercase;
+  fill: #222;
+}
+
+/* Other styles */
+body {
+  background: #FFF;
+  margin: 0;
+}
+
+svg {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
