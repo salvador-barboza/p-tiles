@@ -1,123 +1,142 @@
-//libs
-var two;
-//key height used to draw
-var game = {
-	keyHeight: 0,
-	keyWidth: 0,
-	keyIndexQueue: [],
-	rowQueue: [],
-	score: 0,
-	synth: null
-};
+let synth;
+let two;
 
-var keyWasReleased = true;
+let	keyHeight;
+let keyWidth;
+//Changs with screen size
+let rowsInScreen = 5;
+
+/**
+*Row object queue.
+*/
+let rowQueue;
+
+let score =  0;
+let scoreText;
 
 const NOTES = ['C', 'D', 'E', 'F#', 'G', 'A', 'B'];
+
 const KEYS_PER_ROW = 4;
-const KEY_PRESSED_FILL = 'red';
-let rowsInScreen = 4;
 
-makeRow = function(y) {
-	game.keyWidth = two.width / KEYS_PER_ROW;
-	//puts the key n times keyHeight from the top. Because y position is measured in the center,
-	//so half the height is added.
+const KEY_PRESSED_FILL = '#F99AAA';
+const KEY_EMPTY_FILL = '#FFFFFF';
+const KEY_ACTIVE_FILL = '#333333'
 
-	let reativeKeyX = (n) => {
-		return (n * game.keyWidth) + (game.keyWidth / 2);
+
+//Creates text and returns row group.
+let initScene = function() {
+	const makeRow = function(y) {
+		//puts the key n times keyHeight from the top. Because y position is measured in the center,
+		//so half the height is added.
+
+		let relativeKeyX = (n) => {
+			return (n * keyWidth) + (keyWidth / 2);
+		}
+
+		// nth - 1 row of screen + half the height of the key.
+		let rowY =  (y - 1) * keyHeight + (.5 * keyHeight);
+
+		let keys = [];
+		for(let i = 0; i < KEYS_PER_ROW; i++) {
+			keys.push(two.makeRectangle(relativeKeyX(i), rowY, keyWidth,  keyHeight));
+		}
+
+		let group = two.makeGroup(keys);
+
+		// group.stroke = '#BBB';
+		group.stroke = '#BBBBBB';
+		group.fill = KEY_EMPTY_FILL;
+		group.linewidth = 2;
+
+		return group;
 	}
-
-	// nth - 1 row of screen + half the height of the key.
-	let rowY =  (y - 1) * game.keyHeight + (.5 * game.keyHeight);
-
-	let key1 = two.makeRectangle(reativeKeyX(0), rowY, game.keyWidth,  game.keyHeight);
-	var key2 = two.makeRectangle(reativeKeyX(1), rowY,  game.keyWidth,  game.keyHeight);
-	var key3 = two.makeRectangle(reativeKeyX(2), rowY,  game.keyWidth,  game.keyHeight);
-	var key4 = two.makeRectangle(reativeKeyX(3), rowY,  game.keyWidth,  game.keyHeight);
-
-	let group = two.makeGroup(key1, key2, key3, key4);
-
-	group.stroke = '#BBB';
-	group.fill = '#FFFFFF';
-	group.linewidth = 1;
-
-	return group;
-}
-
-window.addEventListener('load', function() {
-	const TEXT_POSITION_Y = 100;
 	let rows = [];
-	//init synth
-	game.synth = new Tone.Synth().toMaster();
-	//init two
-	two = new Two({fullscreen: true}).appendTo(document.querySelector('#draw-shapes'));
-	game.keyHeight = two.height / rowsInScreen;
 
 	//add an extra row to appear offscreen
 	for (let i = 0; i < rowsInScreen + 1; i++) {
 		rows.push(makeRow(i));
 	}
 
-	let scoreText = new Two.Text(0, two.width / 2, TEXT_POSITION_Y, {
+	const TEXT_POSITION_Y = 100;
+	scoreText = new Two.Text(0, two.width / 2, TEXT_POSITION_Y, {
 		size: 100,
 		fill: '#fff',
 		stroke: '#000',
 		linewidth: 4
 	});
+
 	two.add(scoreText);
 
-	two.bind('update', function(frameCount) {
-		scoreText.value = game.score;
-		for (let i = 0; i < rows.length; i++) {
-			refreshRow(rows[i], i);
-		}
-	}).play();
-});
+	return rows;
+}
+let moveRow = function(row, rowNumber) {
+	const INITIAL_SPEED = 4;
+	let deltaY = INITIAL_SPEED + score / 10;
 
-refreshRow = function(row, rowNumber) {
-	const INITIAL_LEVEL = 5;
-	let ydif =  INITIAL_LEVEL + game.score / 10;
+	//the original position of the row.
+	let initiallDistanceToOrigin = -1 * rowNumber * keyHeight;
+	let rowY = row.getBoundingClientRect().bottom - keyHeight;
 
-	var rowY = row.getBoundingClientRect().bottom;
 
-	let yLimit = two.height + game.keyHeight;
-	let keyY = rowNumber * game.keyHeight;
+	row.translation.set(row.translation.x, row.translation.y + deltaY);
 
-	let targetTranslationY =  0;
-
-	if (rowY > yLimit) {
-		row.translation.set(row.translation.x, -keyY);
+	if(rowY + deltaY >= two.height) {
+		/**
+		*substract what was left at the bottom to deltaY, so that it doesn't overlap with
+		* the next row when relocationg at the top.
+		*/
+		let distanceToBottom = two.height - rowY;
+		row.translation.set(row.translation.x, initiallDistanceToOrigin + (deltaY - distanceToBottom));
 
 		for (let i = 0; i < row.children.length; i++)
-			row.children[i].fill = '#FFFFFF';
+			row.children[i].fill = KEY_EMPTY_FILL;
 
+		let blackKey = Math.floor(Math.random() * (KEYS_PER_ROW));
+		row.children[blackKey].fill = KEY_ACTIVE_FILL;
 
-		var blackKey = Math.floor(Math.random() * (4));
-		row.children[blackKey].fill = '#333333';
-
-		game.rowQueue.push(row);
-		game.keyIndexQueue.push(blackKey);
-
-		if (game.rowQueue.length === 5)
-		  two.pause();
+		rowQueue.push(row);
 	}
-	row.translation.set(row.translation.x, row.translation.y + ydif);
+}
+let start = function(callback) {
+	rowQueue = [];
+	score = 0;
+
+	two.clear();
+
+	let rows = initScene();
+
+	two.bind('update', function(frameCount) {
+		for (let i = 0; i < rows.length; i++) {
+			moveRow(rows[i], i);
+		}
+
+		if(rowQueue.length > rowsInScreen + 1) {
+			two.pause();
+			callback();
+		}
+	}).play();
 }
 
-check = function(i) {
-  if (game.keyIndexQueue[0] == i) {
-    var note = NOTES[Math.floor(Math.random() * (6))] + (Math.floor(Math.random() * (4)) + 3);
-    game.synth.triggerAttackRelease(note, "8n");
-    game.score++;
+let checkRow = function(keyIndex) {
+	if (!rowQueue[0] || !rowQueue[0].children)
+		return;
 
-    var row = game.rowQueue[0];
-    row.children[game.keyIndexQueue[0]].fill = KEY_PRESSED_FILL;
-    game.rowQueue.shift();
-    game.keyIndexQueue.shift();
+	let key = rowQueue[0].children[keyIndex];
 
+	if (key.fill === KEY_ACTIVE_FILL) {
+		// [note] + [octave]
+    let note = NOTES[Math.floor(Math.random() * (6))] + (Math.floor(Math.random() * (4)) + 3);
+    synth.triggerAttackRelease(note, "8n");
+
+		scoreText.value = ++score;
+
+		key.fill = KEY_PRESSED_FILL;
+    rowQueue.shift();
   }
 }
 
-window.onkeydown = function(e) {
+let keyWasReleased = true;
+window.addEventListener('keypress', function(e) {
 	if (!keyWasReleased)
 		return;
 
@@ -128,16 +147,28 @@ window.onkeydown = function(e) {
 		'f': 3
 	}
 
-	if (e.key == 'p') {
-		two.pause();
-	}
+	//wait for the key to go up again
   keyWasReleased = false;
-  check(keys[e.key]);
-}
-window.onkeyup = function(e) {
+  checkRow(keys[e.key]);
+});
+window.addEventListener('keyup', function(e) {
 	keyWasReleased = true;
-}
-window.onclick = function(e) {
-	let screenSector = Math.floor(e.clientX / (two.width / 4));
-  check(screenSector);
-}
+});
+window.addEventListener('click', function(e) {
+	let screenSector = Math.floor(e.clientX / (two.width / KEYS_PER_ROW));
+  checkRow(screenSector);
+});
+
+window.addEventListener('load', function() {
+	two = new Two({fullscreen: true}).appendTo(document.querySelector('#draw-shapes'));
+	synth = new Tone.Synth().toMaster();
+
+	keyWidth = two.width / KEYS_PER_ROW;
+	keyHeight = two.height / rowsInScreen;
+
+
+	start(() => {
+		console.log('a');
+	})
+
+});
