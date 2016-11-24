@@ -1,13 +1,32 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <script src="./two.js"></script>
-  <script src="./main.js"></script>
-  <script src="./tone.js"></script>
+  <script src="./scripts/two.js"></script>
+  <script src="./scripts/main.js"></script>
+  <script src="./scripts/tone.js"></script>
+  <link rel="import" href="./bottom-card/bottom-card.html">
   <meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1, maximum-scale=1">
 
 </head>
+<style>
+  body, html {
+    height: 100vh;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background-color: #cfd8dc;
+  }
+  #stage {
+    width: 100%;
+    max-width: 450px;
+    margin: auto;
+    height: 100%;
+    box-shadow: 0 13px 25px 0 rgba(0, 0, 0, 0.3);
+  }
+
+</style>
 <body>
-  <div id="draw-shapes"  width="200" height="100"></div>
+  <div id="stage"></div>
+  <bottom-card id="card"></bottom-card>
 </body>
 </html>
