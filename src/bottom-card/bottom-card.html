@@ -1,0 +1,124 @@
+<script src="/bower_components/webcomponentsjs/webcomponents-lite.js"></script>
+<script src="/bower_components/web-animations-js/web-animations-next.min.js"></script>
+<link rel="import" href="../../bower_components/paper-input/paper-input.html">
+<template id="bottom-card">
+<style>
+	#overlay {
+		position: absolute;
+		top: 0;
+		bottom: 0;
+		left: 0;
+		right: 0;
+
+		z-index: 1;
+	}
+
+	#card {
+		position: absolute;
+		left: 0;
+		right: 0;
+		bottom: 0;
+
+		max-width: 500px;
+		height: 80px;
+
+		margin: auto;
+		z-index: 2;
+		background-color: #FFFFFF;
+		box-shadow: 0 17px 17px 0 rgba(0, 0, 0, 0.2);
+		transform: translateY(100px);
+	}
+	:host([showing]) > #overlay {
+		display:inline;
+		background-color: rgba(0,0,0,.2);
+	}
+
+	:host([showing]) > #card{
+		transform: translateY(0);
+	}
+
+</style>
+	<div id="overlay"></div>
+	<div id="card">
+		<span>&nbsp;click</span>
+		<paper-input label="text input"></paper-input>
+	</div>
+</template>
+
+<script>
+	//=	require web-animations-js/web-animations-next-lite.min
+	//TODO: add functionality
+	class BottomCard extends HTMLElement {
+		constructor() {
+			super();
+			this._shadowRoot = this.attachShadow({
+				mode: 'open'
+			});
+			const doc = document.currentScript.ownerDocument;
+			const t = doc.querySelector('#bottom-card');
+			const instance = t.content.cloneNode(true);
+			this._shadowRoot.appendChild(instance);
+		}
+
+		connectedCallback() {
+			this.overlay = this._shadowRoot.querySelector('#overlay');
+			this.card = this._shadowRoot.querySelector('#card');
+		}
+
+		show() {
+			var anim = this._playSlideUpAnimation();
+			//hacer algo con promesas para anadir el click despues y que no puedan quitarlo por nomas
+			return new Promise((resolve) => {
+				const waitClick = _ => {
+
+					anim.reverse();
+
+					anim.addEventListener('finish', _=> {
+						this.hide();
+						this.overlay.removeEventListener('click', waitClick);
+						resolve();
+					});
+				}
+
+				this.overlay.addEventListener('click', waitClick);
+			});
+		}
+
+
+		hide() {
+			this.style.display = 'none';
+			this.removeAttribute('showing');
+		}
+
+		_playSlideUpAnimation() {
+			this.style.display = 'inline';
+
+			const overlayFrames = [
+				{display: 'inline', background: 'transparent'},
+				{display: 'inline', background: 'rgba(0,0,0,.2)'}
+			];
+
+			const cardFrames = [
+				{transform: 'translateY(100px)'},
+				{transform: 'translateY(0)'}
+			];
+
+			const duration = {
+    		duration: 250,
+    		easing: 'ease-out',
+  		};
+
+			// var fadeEffect = new KeyframeEffect(this.overlay, overlayFrames, duration);
+			var fadeEffect = new KeyframeEffect(this.overlay, overlayFrames, duration);
+			var slideupEffect = new KeyframeEffect(this.card, cardFrames, duration);
+
+			let groupEffect = new GroupEffect([fadeEffect, slideupEffect]);
+			let active = document.timeline.play(groupEffect);
+			active.addEventListener('finish', _=> {
+				this.setAttribute('showing', '');
+			})
+			return active;
+		}
+	}
+	customElements.define('bottom-card', BottomCard);
+</script>

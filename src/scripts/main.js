@@ -73,7 +73,7 @@ let start = function() {
 
 let gameLoop = function() {
 	const moveRow = function(row, rowNumber) {
-		const INITIAL_SPEED = 4;
+		const INITIAL_SPEED = 10;
 		let deltaY = INITIAL_SPEED + score / 10;
 
 		//the original position of the row.
@@ -160,6 +160,7 @@ window.addEventListener('load', function() {
 	synth = new Tone.PolySynth().toMaster();
 
 	const stage = document.querySelector('#stage');
+	const card = document.querySelector('#card');
 	stage.addEventListener('click', tap);
 
 	if (stage.offsetHeight < 600)
@@ -170,8 +171,10 @@ window.addEventListener('load', function() {
 		.bind('update', gameLoop)
 		//time to reset the game
 		.bind('pause', () => {
-			//todo: add reset code;
-			start(); //DEBUG
+			card.show().then(() => {
+				console.log(score);
+				start();
+			});
 		})
 
 	keyWidth = two.width / KEYS_PER_ROW;
