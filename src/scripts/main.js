@@ -1,18 +1,18 @@
 let synth;
 let two;
 
-let	keyHeight;
+let keyHeight;
 let keyWidth;
 //Changs with screen size
 let rowsInScreen = 4;
 
 /**
-*Row object queue.
-*/
+ *Row object queue.
+ */
 let rows = [];
 let rowQueue;
 
-let score =  0;
+score = 0;
 let scoreText;
 
 const NOTES = ['C', 'D', 'E', 'F#', 'G', 'A', 'B'];
@@ -33,11 +33,11 @@ let start = function() {
 		}
 
 		// nth - 1 row of screen + half the height of the key.
-		let rowY =  (y - 1) * keyHeight + (.5 * keyHeight);
+		let rowY = (y - 1) * keyHeight + (.5 * keyHeight);
 
 		let keys = [];
-		for(let i = 0; i < KEYS_PER_ROW; i++) {
-			keys.push(two.makeRectangle(keyX(i), rowY, keyWidth,  keyHeight));
+		for (let i = 0; i < KEYS_PER_ROW; i++) {
+			keys.push(two.makeRectangle(keyX(i), rowY, keyWidth, keyHeight));
 		}
 
 		let group = two.makeGroup(keys);
@@ -83,11 +83,11 @@ let gameLoop = function() {
 
 		row.translation.set(row.translation.x, row.translation.y + deltaY);
 
-		if(rowY + deltaY >= two.height) {
+		if (rowY + deltaY >= two.height) {
 			/**
-			*substract what was left at the bottom to deltaY, so that it doesn't overlap with
-			* the next row when relocationg at the top.
-			*/
+			 *substract what was left at the bottom to deltaY, so that it doesn't overlap with
+			 * the next row when relocationg at the top.
+			 */
 			let distanceToBottom = two.height - rowY;
 			row.translation.set(row.translation.x, initiallDistanceToOrigin + (deltaY - distanceToBottom));
 
@@ -104,8 +104,10 @@ let gameLoop = function() {
 		moveRow(rows[i], i);
 	}
 
-	if(rowQueue.length > rowsInScreen + 1)
+	if (rowQueue.length > rowsInScreen + 1) {
+		rowQueue = []; //avoid unintentional sounds
 		two.pause();
+	}
 }
 let checkRow = function(keyIndex) {
 	if (!rowQueue[0] || !rowQueue[0].children)
@@ -115,14 +117,14 @@ let checkRow = function(keyIndex) {
 
 	if (key.fill === KEY_ACTIVE_FILL) {
 		// [note] + [octave]
-    let note = NOTES[Math.floor(Math.random() * (6))] + (Math.floor(Math.random() * (4)) + 3);
-    synth.triggerAttackRelease(note, "8n");
+		let note = NOTES[Math.floor(Math.random() * (6))] + (Math.floor(Math.random() * (4)) + 3);
+		synth.triggerAttackRelease(note, "8n");
 
 		scoreText.value = ++score;
 
 		key.fill = KEY_PRESSED_FILL;
-    rowQueue.shift();
-  }
+		rowQueue.shift();
+	}
 }
 
 //todo: mover esto a un sola sola funcion con bind y unbind.
@@ -137,7 +139,8 @@ window.addEventListener('keypress', function(e) {
 		'd': 2,
 		'f': 3
 	}
-  checkRow(keys[e.key]);
+	checkRow(keys[e.key]);
+	keyWasReleased = false;
 });
 
 window.addEventListener('keyup', function(e) {
@@ -149,11 +152,11 @@ let tap = function(e) {
 		.querySelector('#stage')
 		.getBoundingClientRect();
 
-	if( e.clientX < stage.left || e.clientX > stage.right)
+	if (e.clientX < stage.left || e.clientX > stage.right)
 		return;
 
-	let screenSector = Math.floor((e.clientX - stage.left )/ (two.width / KEYS_PER_ROW));
-  checkRow(screenSector);
+	let screenSector = Math.floor((e.clientX - stage.left) / (two.width / KEYS_PER_ROW));
+	checkRow(screenSector);
 };
 
 window.addEventListener('load', function() {
@@ -166,18 +169,53 @@ window.addEventListener('load', function() {
 	if (stage.offsetHeight < 600)
 		rowsInScreen = 3;
 
-	two = new Two({width: stage.offsetWidth, height: stage.offsetHeight})
-		.appendTo(document.querySelector('#stage'))
-		.bind('update', gameLoop)
-		//time to reset the game
-		.bind('pause', () => {
-			card.show().then(() => {
-				console.log(score);
-				start();
-			});
+	two = new Two({
+			width: stage.offsetWidth,
+			height: stage.offsetHeight
 		})
+		.appendTo(document.querySelector('#stage'))
+		.bind('update', gameLoop);
 
 	keyWidth = two.width / KEYS_PER_ROW;
 	keyHeight = two.height / rowsInScreen;
 	start();
+});
+
+window.addEventListener('load', _ => {
+
+	let maxScore;
+	firebase.database().ref('/score')
+		.orderByChild('score')
+		.limitToLast(3).on('value', function(snap) {
+			let scores = [];
+			snap.forEach((child) => {
+				scores.push(child.val());
+			});
+
+			for(let i = 1; i <= scores.length; i++) {
+				document.querySelector('#n' + i).innerHTML =
+					(scores[scores.length - i].score) +
+					'&nbsp;&nbsp;&nbsp;' +
+					(scores[scores.length - i].name);
+			}
+
+			minMaxScore = 0 || sa[0].score;
+		});
+
+
+	two.bind('pause', () => {
+		app.isTop = score > minMaxScore;
+		app.$.card.show();
+	})
+
+	let app = document.querySelector('#app');
+	app.$.card.addEventListener('cancel', _ => {
+		firebase.database().ref('/score').push({
+			name: app.$.nameInput.value,
+			score: score
+		}).then(_ => {
+			start();
+		});
+
+	})
 });

@@ -1,124 +1,120 @@
-<script src="/bower_components/webcomponentsjs/webcomponents-lite.js"></script>
-<script src="/bower_components/web-animations-js/web-animations-next.min.js"></script>
+<link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../bower_components/paper-input/paper-input.html">
-<template id="bottom-card">
-<style>
-	#overlay {
-		position: absolute;
-		top: 0;
-		bottom: 0;
-		left: 0;
-		right: 0;
+<link rel="import" href="../../bower_components/font-roboto/roboto.html">
 
-		z-index: 1;
-	}
+<script src="../../bower_components/web-animations-js/web-animations-next.min.js"></script>
+<dom-module id="bottom-card">
+	<style>
+		:host {
+				font-family: 'Roboto';
+		}
+		#overlay {
+			position: absolute;
+			top: 0;
+			bottom: 0;
+			left: 0;
+			right: 0;
+			z-index: 1;
+		}
 
-	#card {
-		position: absolute;
-		left: 0;
-		right: 0;
-		bottom: 0;
+		#card {
+			position: absolute;
+			left: 0;
+			right: 0;
+			bottom: 0;
+			max-width: 500px;
+			height: 80px;
 
-		max-width: 500px;
-		height: 80px;
+			margin: auto;
+			padding: 16px;
+			z-index: 2;
 
-		margin: auto;
-		z-index: 2;
-		background-color: #FFFFFF;
-		box-shadow: 0 17px 17px 0 rgba(0, 0, 0, 0.2);
-		transform: translateY(100px);
-	}
-	:host([showing]) > #overlay {
-		display:inline;
-		background-color: rgba(0,0,0,.2);
-	}
+			background-color: #FFFFFF;
+			box-shadow: 0 17px 17px 0 rgba(0, 0, 0, 0.2);
+			transform: translateY(116px);
+		}
 
-	:host([showing]) > #card{
-		transform: translateY(0);
-	}
+		:host([showing])>#overlay {
+			background-color: rgba(0, 0, 0, .2);
+		}
 
-</style>
+		:host([showing])>#card {
+			transform: translateY(0);
+		}
+		#title {
+			font-size: 20px;
+		}
+	</style>
+	<template>
 	<div id="overlay"></div>
 	<div id="card">
-		<span>&nbsp;click</span>
-		<paper-input label="text input"></paper-input>
+		<span id="title">
+			<content select=".title"></content>
+		</span>
+		<div>
+			<content select=".body"></content>
+		</div>
+		<content></content>
+
 	</div>
 </template>
 
 <script>
-	//=	require web-animations-js/web-animations-next-lite.min
-	//TODO: add functionality
-	class BottomCard extends HTMLElement {
-		constructor() {
-			super();
-			this._shadowRoot = this.attachShadow({
-				mode: 'open'
-			});
-			const doc = document.currentScript.ownerDocument;
-			const t = doc.querySelector('#bottom-card');
-			const instance = t.content.cloneNode(true);
-			this._shadowRoot.appendChild(instance);
-		}
+Polymer({
+	is: 'bottom-card',
+	properties: {
+		animation: Object
+	},
+	ready: function() {
+		this.overlay = this.$.overlay;
+		this.overlay.addEventListener('click', this.hide.bind(this));
+		this.card = this.$.card;
+		this.hidden = true;
+	},
 
-		connectedCallback() {
-			this.overlay = this._shadowRoot.querySelector('#overlay');
-			this.card = this._shadowRoot.querySelector('#card');
-		}
-
-		show() {
-			var anim = this._playSlideUpAnimation();
-			//hacer algo con promesas para anadir el click despues y que no puedan quitarlo por nomas
-			return new Promise((resolve) => {
-				const waitClick = _ => {
-
-					anim.reverse();
-
-					anim.addEventListener('finish', _=> {
-						this.hide();
-						this.overlay.removeEventListener('click', waitClick);
-						resolve();
-					});
-				}
-
-				this.overlay.addEventListener('click', waitClick);
-			});
-		}
+	show() {
+		this._playSlideUpAnimation();
+		this.hidden = false;
+	},
 
 
-		hide() {
-			this.style.display = 'none';
+	hide() {
+		this.animation.reverse();
+		this.animation.addEventListener('finish', (e) => {			
 			this.removeAttribute('showing');
-		}
+			this.animation = undefined;
+			this.hidden = true;
+		});
 
-		_playSlideUpAnimation() {
-			this.style.display = 'inline';
+		this.fire('cancel');
+	},
 
-			const overlayFrames = [
-				{display: 'inline', background: 'transparent'},
-				{display: 'inline', background: 'rgba(0,0,0,.2)'}
-			];
 
-			const cardFrames = [
-				{transform: 'translateY(100px)'},
-				{transform: 'translateY(0)'}
-			];
+	_playSlideUpAnimation() {
+		this.style.display = 'inline';
 
-			const duration = {
-    		duration: 250,
-    		easing: 'ease-out',
-  		};
+		const overlayFrames = [
+			{display: 'inline', background: 'transparent'},
+			{display: 'inline', background: 'rgba(0,0,0,.2)'}
+		];
 
-			// var fadeEffect = new KeyframeEffect(this.overlay, overlayFrames, duration);
-			var fadeEffect = new KeyframeEffect(this.overlay, overlayFrames, duration);
-			var slideupEffect = new KeyframeEffect(this.card, cardFrames, duration);
+		const cardFrames = [
+			{transform: 'translateY(116px)'},
+			{transform: 'translateY(0)'}
+		];
 
-			let groupEffect = new GroupEffect([fadeEffect, slideupEffect]);
-			let active = document.timeline.play(groupEffect);
-			active.addEventListener('finish', _=> {
-				this.setAttribute('showing', '');
-			})
-			return active;
-		}
+		const duration = {
+			duration: 250,
+			easing: 'ease-out',
+		};
+
+		var fadeEffect = new KeyframeEffect(this.overlay, overlayFrames, duration);
+		var slideupEffect = new KeyframeEffect(this.card, cardFrames, duration);
+
+		let groupEffect = new GroupEffect([fadeEffect, slideupEffect]);
+		this.setAttribute('showing', '');
+		this.animation = document.timeline.play(groupEffect);
 	}
-	customElements.define('bottom-card', BottomCard);
+})
 </script>
+</dom-module>
