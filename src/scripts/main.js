@@ -199,7 +199,7 @@ window.addEventListener('load', _ => {
 					(scores[scores.length - i].name);
 			}
 
-			minMaxScore = 0 || sa[0].score;
+			minMaxScore = 0 || scores[0].score;
 		});
 
 
