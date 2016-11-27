@@ -109,6 +109,7 @@ let gameLoop = function() {
 		two.pause();
 	}
 }
+
 let checkRow = function(keyIndex) {
 	if (!rowQueue[0] || !rowQueue[0].children)
 		return;
@@ -129,17 +130,17 @@ let checkRow = function(keyIndex) {
 
 //todo: mover esto a un sola sola funcion con bind y unbind.
 let keyWasReleased = true;
-window.addEventListener('keypress', function(e) {
+document.addEventListener('keydown', function(e) {
 	if (!keyWasReleased)
 		return;
 
 	var keys = {
-		'a': 0,
-		's': 1,
-		'd': 2,
-		'f': 3
+		'65': 0,
+		'83': 1,
+		'68': 2,
+		'70': 3
 	}
-	checkRow(keys[e.key]);
+	checkRow(keys[e.keyCode]);
 	keyWasReleased = false;
 });
 
@@ -147,7 +148,14 @@ window.addEventListener('keyup', function(e) {
 	keyWasReleased = true;
 });
 
-let tap = function(e) {
+
+(function(document) {
+//TODO: Pasar todo a esto y hacer de la logica del juego un archivo aparte
+
+let app = document.querySelector('#app');
+
+
+app.tap = function(e) {
 	const stage = document
 		.querySelector('#stage')
 		.getBoundingClientRect();
@@ -157,65 +165,66 @@ let tap = function(e) {
 
 	let screenSector = Math.floor((e.clientX - stage.left) / (two.width / KEYS_PER_ROW));
 	checkRow(screenSector);
-};
+}
 
-window.addEventListener('load', function() {
-	synth = new Tone.PolySynth().toMaster();
+app.pushScore = function() {
+	let scoreEntry = {
+		name: app.$.nameInput.value,
+		score: score
+	}
 
+	firebase.database().ref('/score').push(scoreEntry).then(_ => {
+				start();
+	});
+}
+
+app.addEventListener('dom-change', function() {
 	const stage = document.querySelector('#stage');
 	const card = document.querySelector('#card');
-	stage.addEventListener('click', tap);
+
+	stage.addEventListener('click', app.tap);
+
+	let maxScore;
+
+	synth = new Tone.PolySynth().toMaster();
+	two = new Two({
+				width: stage.offsetWidth,
+				height: stage.offsetHeight
+			}).appendTo(document.querySelector('#stage'))
+				.bind('update', gameLoop)
+				.bind('pause', () => {
+					app.isTop = score > minMaxScore;
+					app.$.card.show();
+				});
+
+	keyWidth = two.width / KEYS_PER_ROW;
+	keyHeight = two.height / rowsInScreen;
+
 
 	if (stage.offsetHeight < 600)
 		rowsInScreen = 3;
 
-	two = new Two({
-			width: stage.offsetWidth,
-			height: stage.offsetHeight
-		})
-		.appendTo(document.querySelector('#stage'))
-		.bind('update', gameLoop);
-
-	keyWidth = two.width / KEYS_PER_ROW;
-	keyHeight = two.height / rowsInScreen;
 	start();
-});
 
-window.addEventListener('load', _ => {
 
-	let maxScore;
 	firebase.database().ref('/score')
-		.orderByChild('score')
-		.limitToLast(3).on('value', function(snap) {
-			let scores = [];
-			snap.forEach((child) => {
-				scores.push(child.val());
+			.orderByChild('score')
+			.limitToLast(3).on('value', function(snap) {
+				let scores = [];
+				snap.forEach((child) => {
+					scores.push(child.val());
+				});
+
+				for(let i = 1; i <= scores.length; i++) {
+					document.querySelector('#n' + i).innerHTML =
+						(scores[scores.length - i].score) +
+						'&nbsp;&nbsp;&nbsp;' +
+						(scores[scores.length - i].name);
+				}
+
+				minMaxScore = 0 || scores[0].score;
 			});
 
-			for(let i = 1; i <= scores.length; i++) {
-				document.querySelector('#n' + i).innerHTML =
-					(scores[scores.length - i].score) +
-					'&nbsp;&nbsp;&nbsp;' +
-					(scores[scores.length - i].name);
-			}
-
-			minMaxScore = 0 || scores[0].score;
-		});
-
-
-	two.bind('pause', () => {
-		app.isTop = score > minMaxScore;
-		app.$.card.show();
-	})
-
-	let app = document.querySelector('#app');
-	app.$.card.addEventListener('cancel', _ => {
-		firebase.database().ref('/score').push({
-			name: app.$.nameInput.value,
-			score: score
-		}).then(_ => {
-			start();
-		});
-
-	})
+	app.$.card.addEventListener('cancel', app.pushScore);
 });
+})(document);
