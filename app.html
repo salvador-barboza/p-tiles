@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="/src/scripts/two.js"></script>
+  <script src="src/scripts/tone.js"></script>
+
+  <script src="bower_components/webcomponentsjs/webcomponents-lite.js"></script>
+
+  <link rel="import" href="bower_components/polymer/polymer.html">
+
+
+
+  <link rel="import" href="/src/bottom-card/bottom-card.html">
+
+  <link rel="import" href="bower_components/paper-input/paper-input.html">
+  <script src="https://www.gstatic.com/firebasejs/3.6.1/firebase.js"></script>
+
+  <meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1, maximum-scale=1">
+  <title>p-tiles</title>
+  <style>
+    body, html {
+      height: 100vh;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background-color: #cfd8dc;
+    }
+    #stage {
+      width: 100%;
+      max-width: 450px;
+      margin: auto;
+      height: 100%;
+      box-shadow: 0 13px 25px 0 rgba(0, 0, 0, 0.3);
+    }
+
+    #scorelist {
+      list-style: none;
+      margin-top: 4px;
+      padding-left: 8px;
+    }
+
+    #scorelist li {
+      color: rgba(0,0,0, 0.75);
+    }
+
+  </style>
+</head>
+
+<body>
+  <template is="dom-bind" id="app">
+    <div id="stage"></div>
+    <bottom-card id="card">
+      <div hidden="[[!isTop]]">
+        <div class="title">New Highscore</title></div>
+        <div class="body">
+          <paper-input label="Name" id="nameInput"></paper-input>
+        </div>
+      </div>
+      <div hidden="[[isTop]]">
+        <div class="title">Top 3</title>
+        <ul id="scorelist">
+          <li id="n1"></li>
+          <li id="n2"></li>
+          <li id="n3"></li>
+        </ul>
+      </div>
+  </bottom-card>
+</template>
+</body>
+<script>
+  // Initialize Firebase
+  var config = {
+    apiKey: "AIzaSyDbmfnOJw78pDpcjotwMBJsTvjH9vGUG9Y",
+    databaseURL: "https://p-tiles.firebaseio.com",
+  };
+  firebase.initializeApp(config);
+</script>
+<script src="/src/scripts/main.js"></script>
+<script src="/src/scripts/scores.js"></script>
+
+
+</html>
