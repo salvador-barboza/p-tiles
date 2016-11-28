@@ -4,7 +4,7 @@ let two;
 let keyHeight;
 let keyWidth;
 //Changs with screen size
-let rowsInScreen = 4;
+let rowsInScreen = 5;
 
 /**
  *Row object queue.
@@ -197,12 +197,14 @@ app.addEventListener('dom-change', function() {
 					app.$.card.show();
 				});
 
+
+	if (stage.offsetHeight < 600)
+		rowsInScreen = 4;
+
 	keyWidth = two.width / KEYS_PER_ROW;
 	keyHeight = two.height / rowsInScreen;
 
 
-	if (stage.offsetHeight < 600)
-		rowsInScreen = 3;
 
 	start();
 
