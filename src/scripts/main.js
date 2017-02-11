@@ -15,6 +15,8 @@ let rowQueue;
 score = 0;
 let scoreText;
 
+let minMaxScore = 0;
+
 const NOTES = ['C', 'D', 'E', 'F#', 'G', 'A', 'B'];
 
 const KEYS_PER_ROW = 4;
@@ -73,7 +75,7 @@ let start = function() {
 
 let gameLoop = function() {
 	const moveRow = function(row, rowNumber) {
-		const INITIAL_SPEED = 10;
+		const INITIAL_SPEED = 5;
 		let deltaY = INITIAL_SPEED + score / 10;
 
 		//the original position of the row.
@@ -94,8 +96,7 @@ let gameLoop = function() {
 			for (let i = 0; i < row.children.length; i++)
 				row.children[i].fill = KEY_EMPTY_FILL;
 
-			let blackKey = Math.floor(Math.random() * (KEYS_PER_ROW));
-			row.children[blackKey].fill = KEY_ACTIVE_FILL;
+			row.children[Math.floor(Math.random() * (KEYS_PER_ROW))].fill = KEY_ACTIVE_FILL;
 
 			rowQueue.push(row);
 		}
@@ -150,66 +151,66 @@ window.addEventListener('keyup', function(e) {
 
 
 (function(document) {
-//TODO: Pasar todo a esto y hacer de la logica del juego un archivo aparte
+	//TODO: Pasar todo a esto y hacer de la logica del juego un archivo aparte
 
-let app = document.querySelector('#app');
+	let app = document.querySelector('#app');
 
 
-app.tap = function(e) {
-	const stage = document
-		.querySelector('#stage')
-		.getBoundingClientRect();
+	app.tap = function(e) {
+		const stage = document
+			.querySelector('#stage')
+			.getBoundingClientRect();
 
-	if (e.clientX < stage.left || e.clientX > stage.right)
-		return;
+		if (e.clientX < stage.left || e.clientX > stage.right)
+			return;
 
-	let screenSector = Math.floor((e.clientX - stage.left) / (two.width / KEYS_PER_ROW));
-	checkRow(screenSector);
-}
-
-app.pushScore = function() {
-	let scoreEntry = {
-		name: app.$.nameInput.value,
-		score: score
+		let screenSector = Math.floor((e.clientX - stage.left) / (two.width / KEYS_PER_ROW));
+		checkRow(screenSector);
 	}
 
-	firebase.database().ref('/score').push(scoreEntry).then(_ => {
-				start();
-	});
-}
+	app.pushScore = function() {
+		let scoreEntry = {
+			name: app.$.nameInput.value || ':D',
+			score: score
+		}
 
-app.addEventListener('dom-change', function() {
-	const stage = document.querySelector('#stage');
-	const card = document.querySelector('#card');
+		firebase.database().ref('/score').push(scoreEntry).then(_ => {
+			start();
+		});
+	}
 
-	stage.addEventListener('click', app.tap);
+	app.addEventListener('dom-change', function() {
+		const stage = document.querySelector('#stage');
+		const card = document.querySelector('#card');
 
-	let maxScore;
+		stage.addEventListener('click', app.tap);
 
-	synth = new Tone.PolySynth().toMaster();
-	two = new Two({
+		let maxScore;
+
+		synth = new Tone.PolySynth().toMaster();
+		two = new Two({
 				width: stage.offsetWidth,
 				height: stage.offsetHeight
 			}).appendTo(document.querySelector('#stage'))
-				.bind('update', gameLoop)
-				.bind('pause', () => {
-					app.isTop = score > minMaxScore;
-					app.$.card.show();
-				});
+			.bind('update', gameLoop)
+			.bind('pause', () => {
+				app.isTop = score > minMaxScore;
+				app.$.card.show();
+			});
 
 
-	if (stage.offsetHeight < 600)
-		rowsInScreen = 4;
+		if (stage.offsetHeight < 600)
+			rowsInScreen = 4;
 
-	keyWidth = two.width / KEYS_PER_ROW;
-	keyHeight = two.height / rowsInScreen;
-
-
-
-	start();
+		keyWidth = two.width / KEYS_PER_ROW;
+		keyHeight = two.height / rowsInScreen;
 
 
-	firebase.database().ref('/score')
+
+		start();
+
+
+		firebase.database().ref('/score')
 			.orderByChild('score')
 			.limitToLast(3).on('value', function(snap) {
 				let scores = [];
@@ -217,16 +218,16 @@ app.addEventListener('dom-change', function() {
 					scores.push(child.val());
 				});
 
-				for(let i = 1; i <= scores.length; i++) {
+				for (let i = 1; i <= scores.length; i++) {
 					document.querySelector('#n' + i).innerHTML =
 						(scores[scores.length - i].score) +
 						'&nbsp;&nbsp;&nbsp;' +
 						(scores[scores.length - i].name);
 				}
-
-				minMaxScore = 0 || scores[0].score;
+				if (scores[0].score)
+					minMaxScore = scores[0].score;
 			});
 
-	app.$.card.addEventListener('cancel', app.pushScore);
-});
+		app.$.card.addEventListener('cancel', app.pushScore);
+	});
 })(document);
